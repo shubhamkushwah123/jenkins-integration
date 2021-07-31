@@ -1,0 +1,30 @@
+---
+- hosts: all
+  become: true
+  tasks:
+  - name: install maven
+    apt:
+      pkg: maven
+      state: present
+  - name: install tomcat
+    apt:
+      pkg: tomcat9
+      state: present
+  - name: uninstall git
+    apt:
+      pkg: git
+      state: absent
+  - name: start tomcat service
+    service:
+      name: tomcat9
+      state: started
+      enabled: true
+  - name: install docker
+    apt:
+      pkg: docker.io
+      state: present
+  - name: start docker service
+    service:
+      name: docker
+      state: started
+      enabled: true

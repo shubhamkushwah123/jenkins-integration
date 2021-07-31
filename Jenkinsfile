@@ -1,88 +1,86 @@
-node {
-        
+node{
+        def mavenHome
+        def mavenCMD
         def docker
         def dockerCMD
-        def ipAddress
-        def aptUpdate
-        def dockerInstall
-        def dockerStart
-        def dockerRun
-        def user
-       
-        
-           stage('Preparation') { 
-                echo 'preparing the environment'
-                docker = tool name: 'docker', type: 'org.jenkinsci.plugins.docker.commons.tools.DockerTool'
-                dockerCMD = "$docker/bin/docker"
-                ipAddress = "18.188.128.194"
-                aptUpdate = "sudo apt update"
-                dockerInstall = "sudo apt install -y docker.io"
-                dockerStart = "sudo service docker start"
-                dockerRun = "sudo docker run -itd -p 80:8080 --name=addressbook shubhamkushwah123/addressbook:1.0"
-                user = "ubuntu"
-           }
-           
-           stage('git checkout'){
-               echo 'checking out code from github repository'
-               git 'https://github.com/shubhamkushwah123/docker-demo.git'
-           }
-           stage('compile Test and Package') {
-             echo 'Compile code, Testing and Packaging'
-             sh 'mvn clean package'
-           }
-           
-           stage('Integration Test'){
-               echo 'Running Integration Test Using Selenium'
-               // run integration test
-           }
-            
-           stage('Results') {
-              echo 'generating Junit Reports'
-              junit '**/target/surefire-reports/*.xml'
-           }
-           
-           
-            stage('Build docker image') {
-                echo 'building docker image from Dockerfile'
-                sh "${dockerCMD} build -t shubhamkushwah123/addressbook:1.0 ."
-            }
-            
-            stage('Push docker image') {
-                echo 'Authenticating user to push image on Docker hub'
-                withCredentials([string(credentialsId: 'dockerPwd', variable: 'dockerHubPwd')]) {
-            //    sh "${dockerCMD} login -u shubhamkushwah123 -p ${dockerHubPwd}"
-                }
-                echo 'pushing image on docker hub'
-             //  sh "${dockerCMD} push shubhamkushwah123/addressbook:1.0"
-             }
-              
-            stage('Run Apt Update'){
-              echo 'establishing ssh connection to run apt update'
-              sshagent(['aws-ubuntu']) {
-                   sh "ssh -o StrictHostKeyChecking=no ${user}@${ipAddress} ${aptUpdate}" 
-                  }
-            }  
-            
-            stage('Docker  Install'){
-                echo 'Installing docker on aws Instance'
-                 sshagent(['aws-ubuntu']) {
-                   sh "ssh -o StrictHostKeyChecking=no ${user}@${ipAddress} ${dockerInstall}" 
-               }
-            }
-            
-            stage('Docker Start'){
-                echo 'Starting docker on aws Instance'
-                 sshagent(['aws-ubuntu']) {
-                   sh "ssh -o StrictHostKeyChecking=no ${user}@${ipAddress} ${dockerStart}" 
-              }
-            }
-            
-            stage('Deploy Application'){
-                echo 'Deploying Application on aws Instance'
-              sshagent(['aws-ubuntu']) {
+        def tagName = "1.0"
 
-                   sh "ssh -o StrictHostKeyChecking=no ${user}@${ipAddress} ${dockerRun}" 
-               }
-            }  
-    } // node end
+        stage('Preparation of Jenkins'){
+          
+                echo "Setting up the Jenkins environment..."
+                mavenHome = tool name: 'maven', type: 'maven'
+                mavenCMD = "${mavenHome}/bin/mvn"
+                docker = tool name: 'docker', type: 'org.jenkinsci.plugins.docker.commons.tools.DockerTool'
+                dockerCMD = "$docker/bin/docker"    
+        }
+
+       stage('git checkout'){
+           try{
+                echo "Checking out the code from git repository..."
+                git 'https://github.com/shubhamkushwah123/DevOpsClassCodes.git'
+            }
+            catch(Exception err){
+                echo "Exception occured during git checkout step..."
+                currentBuild.result="FAILURE"
+                mail to: 'shubhamsinghkushwah@gmail.com', subject: "Job ${JOB_NAME} (${BUILD_NUMBER}) is  Failed at step - git checkout", body: "Hi Team, \n\n Please go to ${BUILD_URL} for more details and verify 	
+	        the cause for the build failure. \n Error:\n $err \n\n Regards, \n DevOps Team "
+                throw err
+            }
+
+        stage('Build, Test and Package'){
+            
+                echo "Building the application..."
+                sh "${mavenCMD} clean package"
+         }
+    
+        stage('Sonar Scan'){
+            
+               echo "Scanning application for vulnerabilities using Sonar..."
+                sh "${mavenCMD} sonar:sonar -Dsonar.host.url=http://35.188.131.222:9000  -Dsonar.login=03c8b31da2e09c29b8eb5078385d4eeff321735d"      
+        }
+    
+        stage('Generating UnitTest Report'){
+            
+                echo "Generating Test Report"
+                sh "${mavenCMD} surefire-report:report-only"
+           
+        }
+
+        stage('Publish Report'){
+   
+                echo " Publishing HTML report.."
+                publishHTML([allowMissing: false, alwaysLinkToLastBuild: false, keepAll: false, reportDir: 'target/site/', reportFiles: 'surefire-report.html', reportName: 'HTML Report', reportTitles: ''])
+            
+        }
+
+        stage('Build Docker Image'){
+            
+                echo "Building docker image for application ..."
+                sh "${dockerCMD} build -t ailamadu/casestudy:${tagName} ."
+        }
+    
+        stage("Log into the Dockerhub and Push Docker Image"){
+            
+                echo "Log into the dockerhub and Pushing image"
+                withCredentials([string(credentialsId: 'dockerpwd', variable: 'dockerhubPwd')]) {   
+                    sh ("${dockerCMD}" + ' login -u ailamadu -p ${dockerhubPwd}')
+                    sh "${dockerCMD} push ailamadu/casestudy:${tagName}"
+        }
+    
+        stage('Deploy EC2 and Application using Ansible'){
+          
+                echo "Deploying the EC2 Instance and applicaiton using Ansible Playbook.."
+                ansiblePlaybook credentialsId: 'ssh', disableHostKeyChecking: true, installation: 'ansible', inventory: '/etc/ansible/hosts', playbook: 'deploy-playbook.yml' , extras: '-u ubuntu'
+   
+        }
+    
+        stage('Workspace Cleanup'){
+           
+                echo "Clean the Jenkin Pipeline's workspace..."
+                cleanWs()
+          
+          
+        }
+}
+
 
