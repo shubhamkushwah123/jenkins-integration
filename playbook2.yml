@@ -1,6 +1,6 @@
 ---
 - hosts: all
-  become_user: ubuntu
+  become_user: edureka
   tasks:
   - name: install maven
     apt:
