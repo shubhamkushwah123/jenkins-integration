@@ -53,15 +53,15 @@ node{
         stage('Build Docker Image'){
             
                 echo "Building docker image for application ..."
-                sh "sudo ${dockerCMD} build -t shubhamkushwah123/addressbook:${tagName} ."
+                sh "${dockerCMD} build -t shubhamkushwah123/addressbook:${tagName} ."
         }
     
         stage("Push Docker Image to DockerHub"){
             
                 echo "Log into the dockerhub and Pushing image"
                 withCredentials([string(credentialsId: 'dockerPwd', variable: 'dockerHubPwd')]) {
-                sh "sudo ${dockerCMD} login -u shubhamkushwah123 -p ${dockerHubPwd}"
-                sh "sudo ${dockerCMD} push shubhamkushwah123/addressbook:${tagName}"
+                sh "${dockerCMD} login -u shubhamkushwah123 -p ${dockerHubPwd}"
+                sh "${dockerCMD} push shubhamkushwah123/addressbook:${tagName}"
                 }
         }
     
@@ -80,5 +80,3 @@ node{
           
         }
 }
-
-
