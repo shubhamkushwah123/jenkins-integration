@@ -53,22 +53,22 @@ node{
         stage('Build Docker Image'){
             
                 echo "Building docker image for application ..."
-                sh "sudo docker build -t shubhamkushwah123/addressbook:${tagName} ."
+                sh "sudo ${dockerCMD} build -t shubhamkushwah123/addressbook:${tagName} ."
         }
     
         stage("Push Docker Image to DockerHub"){
             
                 echo "Log into the dockerhub and Pushing image"
                 withCredentials([string(credentialsId: 'dockerPwd', variable: 'dockerHubPwd')]) {
-                sh "sudo docker login -u shubhamkushwah123 -p ${dockerHubPwd}"
-                sh "sudo docker push shubhamkushwah123/addressbook:${tagName}"
+                sh "sudo ${dockerCMD} login -u shubhamkushwah123 -p ${dockerHubPwd}"
+                sh "sudo ${dockerCMD} push shubhamkushwah123/addressbook:${tagName}"
                 }
         }
     
         stage('Configure Server using Ansible'){
           
-                echo "Deploying the EC2 Instance and applicaiton using Ansible Playbook.."
-              //  ansiblePlaybook credentialsId: 'ssh', disableHostKeyChecking: true, installation: 'ansible', inventory: '/etc/ansible/hosts', playbook: 'deploy-playbook.yml' , extras: '-u ubuntu'
+              echo 'configuring servers'
+              sh 'ansible-playbook playbook2.yml'
    
         }
     
