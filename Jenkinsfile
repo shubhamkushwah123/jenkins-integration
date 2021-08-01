@@ -11,13 +11,13 @@ node{
                 mavenHome = tool name: 'maven', type: 'maven'
                 mavenCMD = "${mavenHome}/bin/mvn"
                 docker = tool name: 'docker', type: 'org.jenkinsci.plugins.docker.commons.tools.DockerTool'
-                dockerCMD = "${docker}/bin/docker"    
+                dockerCMD = "$docker/bin/docker"
         }
 
        stage('git checkout'){
          
                 echo "Checking out the code from git repository..."
-                git 'https://github.com/shubhamkushwah123/docker-demo.git'
+                git 'https://github.com/shubhamkushwah123/jenkins-integration.git'
         }
            
 
