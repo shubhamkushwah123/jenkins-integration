@@ -3,7 +3,7 @@ node{
         def mavenCMD
         def docker
         def dockerCMD
-        def tagName = "1.0"
+        def tagName = "3.0"
 
         stage('Preparation of Jenkins'){
           
