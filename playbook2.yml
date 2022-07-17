@@ -28,3 +28,5 @@
       name: docker
       state: started
       enabled: true
+  - name : run new addressbook application
+    command: docker run -itd -p 8888:8080 shubhamkushwah123/addressbook:7.0
